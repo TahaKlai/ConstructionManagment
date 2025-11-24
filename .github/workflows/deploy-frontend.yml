@@ -39,7 +39,7 @@ jobs:
       - name: Deploy to Netlify
         uses: netlify/actions/cli@master
         with:
-          args: deploy --prod --dir=dist/ConstructionManagmentFront --message "Production deploy from GitHub Actions"
+          args: deploy --prod --dir=dist/ConstructionManagmentFront/browser --message "Production deploy from GitHub Actions"
 
       - name: Comment PR with deployment URL
         if: github.event_name == 'pull_request'

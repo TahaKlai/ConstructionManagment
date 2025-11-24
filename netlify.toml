@@ -1,7 +1,7 @@
 [build]
 base = "ConstructionManagmentFront"
 command = "npm run build -- --configuration production"
-publish = "dist/ConstructionManagmentFront"
+publish = "dist/ConstructionManagmentFront/browser"
 
 [build.environment]
 NODE_VERSION = "20"
