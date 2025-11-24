@@ -1,7 +1,11 @@
 [build]
 base = "ConstructionManagmentFront/ConstructionManagmentFront"
-command = "npm install --legacy-peer-deps && npm run build -- --configuration production"
+command = "npm run build -- --configuration production"
 publish = "dist/ConstructionManagmentFront"
+
+[build.environment]
+NODE_VERSION = "20"
+NPM_FLAGS = "--legacy-peer-deps"
 
 [[redirects]]
 from = "/api/*"
