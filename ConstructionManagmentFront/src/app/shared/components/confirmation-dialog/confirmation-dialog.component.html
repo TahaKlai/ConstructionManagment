@@ -1,0 +1,19 @@
+<div class="confirmation-dialog-backdrop" *ngIf="isVisible" (click)="onCancel()">
+  <div class="confirmation-dialog" (click)="$event.stopPropagation()">
+    <div class="confirmation-dialog-header">
+      <h4>{{ title }}</h4>
+      <button type="button" class="btn-close" aria-label="Close" (click)="onCancel()"></button>
+    </div>
+    <div class="confirmation-dialog-body">
+      <p>{{ message }}</p>
+    </div>
+    <div class="confirmation-dialog-footer">
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">
+        {{ cancelButtonText }}
+      </button>
+      <button type="button" class="btn" [ngClass]="confirmButtonClass" (click)="onConfirm()">
+        {{ confirmButtonText }}
+      </button>
+    </div>
+  </div>
+</div>
