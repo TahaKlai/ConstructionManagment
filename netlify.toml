@@ -1,0 +1,10 @@
+[build]
+base = "ConstructionManagmentFront/ConstructionManagmentFront"
+command = "npm install && npm run build -- --configuration production"
+publish = "ConstructionManagmentFront/ConstructionManagmentFront/dist/ConstructionManagmentFront"
+
+[[redirects]]
+from = "/api/*"
+to = "https://constructionmanagment-production.up.railway.app/api/:splat"
+status = 200
+force = true
