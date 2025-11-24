@@ -9,6 +9,9 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ConstructionManagmentFront
 
     steps:
       - name: Checkout code
@@ -19,23 +22,24 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: 'package-lock.json'
+          cache-dependency-path: 'ConstructionManagmentFront/package-lock.json'
+
+      - name: Export secrets to environment
+        run: |
+          echo "BACKEND_URL=${{ secrets.BACKEND_URL }}" >> $GITHUB_ENV
+          echo "NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }}" >> $GITHUB_ENV
+          echo "NETLIFY_SITE_ID=${{ secrets.NETLIFY_SITE_ID }}" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build Angular app
         run: npm run build -- --configuration production
-        env:
-          BACKEND_URL: ${{ secrets.BACKEND_URL }}
 
       - name: Deploy to Netlify
         uses: netlify/actions/cli@master
         with:
           args: deploy --prod --dir=dist/ConstructionManagmentFront --message "Production deploy from GitHub Actions"
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
 
       - name: Comment PR with deployment URL
         if: github.event_name == 'pull_request'
@@ -49,5 +53,3 @@ jobs:
               repo: context.repo.repo,
               body: `✅ Frontend deployed! View at: https://${siteId}.netlify.app`
             })
-        env:
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
