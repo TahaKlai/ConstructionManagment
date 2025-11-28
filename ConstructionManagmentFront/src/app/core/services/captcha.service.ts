@@ -11,6 +11,8 @@ type RuntimeEnv = Record<string, string | undefined>;
 
 declare const process: { env?: RuntimeEnv } | undefined;
 
+const DEFAULT_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'; // Google test key, replace in prod
+
 const runtimeEnv: RuntimeEnv = (() => {
   const merged: RuntimeEnv = {};
   const append = (source: Record<string, unknown> | undefined | null) => {
@@ -50,7 +52,7 @@ const readEnv = (key: string, fallback: string) => {
 
 @Injectable({ providedIn: 'root' })
 export class CaptchaService {
-  private readonly siteKey = readEnv('NG_APP_RECAPTCHA_SITE_KEY', '').trim();
+  private readonly siteKey = readEnv('NG_APP_RECAPTCHA_SITE_KEY', DEFAULT_SITE_KEY).trim();
   private readonly enabled = readEnv('NG_APP_RECAPTCHA_ENABLED', 'true').toLowerCase() !== 'false';
   private scriptLoadingPromise: Promise<void> | null = null;
 
