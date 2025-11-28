@@ -12,12 +12,10 @@ export const adminGuard: CanActivateFn = (route, state) => {
     return false;
   }
   
-  // Check if user has admin role
-  const mockRole = localStorage.getItem('mock_user_role');
-  const isAdmin = mockRole === 'ROLE_ADMIN';
+  const isAdmin = authService.hasRole('ROLE_ADMIN');
   
   if (!isAdmin) {
-    alert('Access denied. Admin privileges required.');
+    router.navigate(['/dashboard']);
     return false;
   }
   

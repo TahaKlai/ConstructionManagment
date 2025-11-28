@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, BehaviorSubject } from 'rxjs';
-import { AuthResponse, LoginRequest, RegisterRequest, User } from '../models/user.model';
+import { AuthResponse, LoginRequest, RegisterRequest, Role, User } from '../models/user.model';
 import { JwtHelperService } from '@auth0/angular-jwt';
 
 @Injectable({
@@ -13,20 +13,19 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   currentUser$ = this.currentUserSubject.asObservable();
   
-  isAuthenticated = signal<boolean>(this.hasValidToken());
+  private authState = signal<boolean>(this.hasValidToken());
 
   constructor(private http: HttpClient) {
     this.loadUserFromToken();
   }
 
   login(loginRequest: LoginRequest): Observable<AuthResponse> {
-    console.log('AuthService: Making login request to real backend /api/auth/login', loginRequest);
+    console.log('AuthService: Making login request to real backend /api/auth/login for user', loginRequest.username);
     return this.http.post<AuthResponse>('/api/auth/login', loginRequest)
       .pipe(
         tap(response => {
           console.log('AuthService: Login response received', response);
-          // Backend returns 'token' field, not 'accessToken'
-          const token = (response as any).token || (response as any).accessToken;
+          const token = response.token;
           this.storeToken(token);
           this.loadUserFromToken();
         })
@@ -44,9 +43,8 @@ export class AuthService {
   logout(): void {
     console.log('=== LOGOUT: Clearing all authentication data ===');
     localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem('mock_user_role'); // Clear mock role too
     this.currentUserSubject.next(null);
-    this.isAuthenticated.set(false);
+    this.authState.set(false);
     console.log('✅ All authentication data cleared');
   }
 
@@ -55,7 +53,7 @@ export class AuthService {
     console.log('=== FORCE LOGOUT: Clearing ALL stored data ===');
     localStorage.clear(); // Clear everything
     this.currentUserSubject.next(null);
-    this.isAuthenticated.set(false);
+    this.authState.set(false);
     console.log('✅ ALL localStorage data cleared');
   }
 
@@ -63,7 +61,6 @@ export class AuthService {
     const token = localStorage.getItem(this.tokenKey);
     
     if (token) {
-      // Check if token is expired
       try {
         const parts = token.split('.');
         if (parts.length === 3) {
@@ -89,7 +86,7 @@ export class AuthService {
 
   private storeToken(token: string): void {
     localStorage.setItem(this.tokenKey, token);
-    this.isAuthenticated.set(true);
+    this.authState.set(true);
   }
 
   private loadUserFromToken(): void {
@@ -98,14 +95,23 @@ export class AuthService {
       try {
         const decodedToken = this.jwtHelper.decodeToken(token);
         if (decodedToken) {
+          const rolesRaw = decodedToken.roles;
+          const roles: Role[] = Array.isArray(rolesRaw)
+            ? rolesRaw.map((role: any, index: number) => typeof role === 'string'
+                ? ({ id: index, name: role })
+                : role)
+            : typeof rolesRaw === 'string'
+              ? rolesRaw.split(',').map((role: string, index: number) => ({ id: index, name: role.trim() }))
+              : [];
+
           const user: User = {
             username: decodedToken.sub,
             email: decodedToken.email || '',
             fullName: decodedToken.fullName || decodedToken.sub || 'Unknown User',
-            roles: decodedToken.roles || []
+            roles
           };
           this.currentUserSubject.next(user);
-          this.isAuthenticated.set(true);
+          this.authState.set(true);
         }
       } catch (error) {
         this.logout();
@@ -115,13 +121,11 @@ export class AuthService {
 
   hasValidToken(): boolean {
     const token = this.getToken();
-    
-    // TEMPORARY: Accept fake token for testing
-    if (token === 'fake-token-for-testing-123') {
-      return true;
-    }
-    
     return !!token && !this.jwtHelper.isTokenExpired(token);
+  }
+
+  isAuthenticated(): boolean {
+    return this.authState();
   }
 
   hasRole(role: string): boolean {
@@ -129,6 +133,6 @@ export class AuthService {
     if (!user || !user.roles) {
       return false;
     }
-    return user.roles.some(r => r.name === role);
+    return user.roles.some(r => (typeof r === 'string' ? r === role : r.name === role));
   }
 }

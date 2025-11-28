@@ -5,18 +5,18 @@ export interface User {
   fullName: string;
   password?: string;
   enabled?: boolean;
-  roles: Role[];
+  roles: Array<Role | string>;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface Role {
-  id: number;
+  id?: number;
   name: string;
 }
 
 export interface AuthResponse {
-  accessToken: string;
+  token: string;
   tokenType: string;
   username: string;
   roles: string[];
@@ -25,6 +25,7 @@ export interface AuthResponse {
 export interface LoginRequest {
   username: string;
   password: string;
+  captchaToken?: string;
 }
 
 export interface RegisterRequest {

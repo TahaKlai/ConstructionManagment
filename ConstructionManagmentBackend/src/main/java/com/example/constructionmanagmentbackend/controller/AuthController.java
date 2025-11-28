@@ -9,6 +9,7 @@ import com.example.constructionmanagmentbackend.entity.User;
 import com.example.constructionmanagmentbackend.repository.RoleRepository;
 import com.example.constructionmanagmentbackend.repository.UserRepository;
 import com.example.constructionmanagmentbackend.security.JwtTokenProvider;
+import com.example.constructionmanagmentbackend.service.CaptchaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -19,11 +20,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -45,6 +49,9 @@ public class AuthController {
     @Autowired
     private JwtTokenProvider tokenProvider;
 
+    @Autowired
+    private CaptchaService captchaService;
+
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticates a user and returns a JWT token")
     @ApiResponses(value = {
@@ -52,6 +59,8 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Authentication failed")
     })
     public ResponseEntity<AuthResponseDto> login(@RequestBody LoginRequestDto loginRequest) {
+        captchaService.validateCaptcha(loginRequest.getCaptchaToken());
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getUsername(),
@@ -61,8 +70,11 @@ public class AuthController {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = tokenProvider.generateToken(authentication);
+        List<String> roles = authentication.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList());
 
-        return ResponseEntity.ok(new AuthResponseDto(jwt));
+        return ResponseEntity.ok(new AuthResponseDto(jwt, "Bearer", authentication.getName(), roles));
     }
 
     @PostMapping("/register")

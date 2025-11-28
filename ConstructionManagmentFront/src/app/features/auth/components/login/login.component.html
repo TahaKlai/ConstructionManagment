@@ -50,6 +50,12 @@
             }
           </button>
         </div>
+
+        @if (captchaError) {
+          <div class="alert alert-warning captcha-alert" role="alert">
+            {{ captchaError }}
+          </div>
+        }
         
         <div class="auth-links">
           <p>Don't have an account? <a href="#" (click)="navigateToRegister($event)" class="register-link">Register</a></p>

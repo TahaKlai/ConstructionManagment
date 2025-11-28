@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter, map } from 'rxjs/operators';
@@ -17,6 +17,7 @@ export class App implements OnInit {
   pageTitle = 'Dashboard';
   currentUser: User | null = null;
   isAdmin = false;
+  showUserMenu = false;
   
   private router = inject(Router);
   private authService = inject(AuthService);
@@ -35,18 +36,10 @@ export class App implements OnInit {
       )
       .subscribe(title => this.pageTitle = title);
     
-    // Check role immediately from localStorage
-    this.checkUserRole();
-    
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
       this.checkUserRole();
     });
-    
-    // Also check role periodically to ensure it stays updated
-    setInterval(() => {
-      this.checkUserRole();
-    }, 1000);
   }
 
   toggleSidebar() {
@@ -57,9 +50,24 @@ export class App implements OnInit {
     return this.authService.isAuthenticated();
   }
 
+  toggleUserMenu(event: Event) {
+    event.stopPropagation();
+    this.showUserMenu = !this.showUserMenu;
+  }
+
+  closeUserMenu() {
+    this.showUserMenu = false;
+  }
+
   logout() {
+    this.closeUserMenu();
     this.authService.logout();
     this.router.navigate(['/auth/login']);
+  }
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.closeUserMenu();
   }
 
   private getPageTitleFromUrl(): string {
@@ -81,24 +89,12 @@ export class App implements OnInit {
   }
 
   private checkUserRole(): void {
-    // Check user role from localStorage or current user
-    const mockRole = localStorage.getItem('mock_user_role');
-    console.log('=== APP COMPONENT ROLE CHECK ===');
-    console.log('mockRole from localStorage:', mockRole);
-    
-    if (mockRole) {
-      this.isAdmin = mockRole === 'ROLE_ADMIN';
-      console.log('✅ Admin status from localStorage:', this.isAdmin);
-    } else if (this.currentUser && this.currentUser.roles) {
+    if (this.currentUser && this.currentUser.roles) {
       this.isAdmin = this.currentUser.roles.some((role: any) => 
-        role === 'ROLE_ADMIN' || role.name === 'ROLE_ADMIN'
+        (typeof role === 'string' ? role : role.name) === 'ROLE_ADMIN'
       );
-      console.log('✅ Admin status from currentUser:', this.isAdmin);
     } else {
       this.isAdmin = false;
-      console.log('ℹ️ No role info found, defaulting to User');
     }
-    console.log('Final app component admin status:', this.isAdmin);
-    console.log('==============================');
   }
 }
