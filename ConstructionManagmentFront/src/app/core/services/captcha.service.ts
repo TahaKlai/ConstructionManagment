@@ -7,10 +7,51 @@ interface CaptchaWindow extends Window {
   };
 }
 
+type RuntimeEnv = Record<string, string | undefined>;
+
+declare const process: { env?: RuntimeEnv } | undefined;
+
+const runtimeEnv: RuntimeEnv = (() => {
+  const merged: RuntimeEnv = {};
+  const append = (source: Record<string, unknown> | undefined | null) => {
+    if (!source) {
+      return;
+    }
+    for (const [key, value] of Object.entries(source)) {
+      if (typeof value !== 'undefined' && value !== null) {
+        merged[key] = String(value);
+      }
+    }
+  };
+
+  try {
+    const metaEnv = (import.meta as unknown as { env?: RuntimeEnv })?.env;
+    append(metaEnv);
+  } catch (error) {
+    console.debug('import.meta.env unavailable; falling back to window/process env.', error);
+  }
+
+  if (typeof window !== 'undefined') {
+    append((window as unknown as { __env?: RuntimeEnv }).__env);
+  }
+
+  if (typeof process !== 'undefined') {
+    append((process as unknown as { env?: RuntimeEnv }).env);
+  }
+
+  return merged;
+})();
+
+const readEnv = (key: string, fallback: string) => {
+  const normalizedKey = key.startsWith('NG_APP_') ? key : `NG_APP_${key}`;
+  const value = runtimeEnv[normalizedKey];
+  return typeof value === 'string' ? value : fallback;
+};
+
 @Injectable({ providedIn: 'root' })
 export class CaptchaService {
-  private readonly siteKey = (import.meta.env['NG_APP_RECAPTCHA_SITE_KEY'] ?? '').trim();
-  private readonly enabled = (import.meta.env['NG_APP_RECAPTCHA_ENABLED'] ?? 'true').toLowerCase() !== 'false';
+  private readonly siteKey = readEnv('NG_APP_RECAPTCHA_SITE_KEY', '').trim();
+  private readonly enabled = readEnv('NG_APP_RECAPTCHA_ENABLED', 'true').toLowerCase() !== 'false';
   private scriptLoadingPromise: Promise<void> | null = null;
 
   isEnabled(): boolean {
