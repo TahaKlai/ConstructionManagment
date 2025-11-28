@@ -31,8 +31,11 @@ public class CaptchaService {
                           @Value("${app.captcha.enabled:true}") boolean captchaEnabled,
                           @Value("${app.captcha.secret:}") String captchaSecret) {
         this.restTemplate = restTemplate;
-        this.captchaEnabled = captchaEnabled;
         this.captchaSecret = captchaSecret;
+        if (captchaEnabled && !StringUtils.hasText(captchaSecret)) {
+            logger.warn("Captcha enabled but secret missing; disabling validation.");
+        }
+        this.captchaEnabled = captchaEnabled && StringUtils.hasText(captchaSecret);
     }
 
     public void validateCaptcha(String captchaToken) {
@@ -41,12 +44,13 @@ public class CaptchaService {
             return;
         }
 
-        if (!StringUtils.hasText(captchaSecret)) {
-            throw new IllegalStateException("Captcha secret is not configured");
-        }
-
         if (!StringUtils.hasText(captchaToken)) {
             throw new BadRequestException("Captcha token is missing");
+        }
+
+        if ("captcha-disabled".equalsIgnoreCase(captchaToken)) {
+            logger.warn("Received captcha-disabled token while captcha is enabled; rejecting request.");
+            throw new BadRequestException("Captcha validation failed");
         }
 
         HttpHeaders headers = new HttpHeaders();
